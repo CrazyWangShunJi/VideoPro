@@ -1,17 +1,17 @@
 <template>
   <div class="images-gallery">
     <div class="header">
-      <h1>Image Gallery</h1>
+      <h1>图片集合</h1>
       <el-input
         v-model="searchQuery"
-        placeholder="Search images..."
+        placeholder="搜索图片..."
         prefix-icon="Search"
         class="search-input"
       />
     </div>
 
     <div class="filters">
-      <el-select v-model="selectedCategory" placeholder="Category" clearable>
+      <el-select v-model="selectedCategory" placeholder="目录" clearable>
         <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
       </el-select>
     </div>

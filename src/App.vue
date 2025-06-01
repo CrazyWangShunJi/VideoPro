@@ -7,7 +7,7 @@ import { ElContainer, ElHeader, ElMain, ElFooter } from 'element-plus'
     <el-header>
       <nav class="nav-menu">
         <router-link to="/" class="logo">
-          PhotoPro
+          VisionPro
         </router-link>
         <div class="nav-links">
           <router-link to="/images">图片</router-link>
@@ -85,6 +85,7 @@ body {
 .el-main {
   padding: 0;
   background: #f5f7fa;
+  overflow-y: hidden;
 }
 
 .el-footer {

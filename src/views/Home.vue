@@ -1,20 +1,20 @@
 <template>
   <div class="home">
     <div class="hero">
-      <h1>欢迎来到PhotoPro</h1>
+      <h1>欢迎来到VisionPro</h1>
       <p>发掘国内独一无二的视觉作品集</p>
     </div>
     
     <div class="categories">
       <router-link to="/images" class="category">
-        <el-card>
+        <el-card class="photo-card">
           <h2>图片合集</h2>
           <p>浏览我们的精美图集</p>
         </el-card>
       </router-link>
       
       <router-link to="/videos" class="category">
-        <el-card>
+        <el-card class="video-card">
           <h2>视频合集</h2>
           <p>观看我们的精选视频</p>
         </el-card>
@@ -35,7 +35,7 @@ import { ElCard } from 'element-plus'
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/hero-bg.jpg');
+    background: url('../assets/web.png');
     background-size: cover;
     background-position: center;
     color: white;
@@ -72,6 +72,20 @@ import { ElCard } from 'element-plus'
         height: 100%;
         text-align: center;
         padding: 2rem;
+      }
+
+      .photo-card {
+        background: url('../assets/photo.png');
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
+      }
+
+      .video-card {
+        background: url('../assets/video.png');
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
       }
     }
   }
