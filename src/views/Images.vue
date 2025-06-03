@@ -1,7 +1,7 @@
 <template>
   <div class="images-gallery">
     <!-- 分类视图 -->
-    <div v-if="!selectedCategory" class="categories-view">
+    <div v-if="!currentCategory" class="categories-view">
       <div class="header">
         <h1>图片分类</h1>
         <div class="header-actions">
@@ -43,7 +43,7 @@
           v-for="category in categories" 
           :key="category.id" 
           class="category-item"
-          @click="selectCategory(category)"
+          @click="navigateToCategory(category)"
         >
           <div class="category-cover">
             <el-image 
@@ -83,16 +83,17 @@
     <div v-else class="category-detail-view">
       <div class="header">
         <div class="breadcrumb">
-          <el-button 
-            @click="backToCategories" 
-            type="text" 
-            :icon="ArrowLeft"
-            size="large"
-          >
-            返回分类
-          </el-button>
+          <router-link to="/images" class="back-link">
+            <el-button 
+              type="text" 
+              :icon="ArrowLeft"
+              size="large"
+            >
+              返回分类
+            </el-button>
+          </router-link>
           <span class="separator">/</span>
-          <h1>{{ selectedCategory.name }}</h1>
+          <h1>{{ currentCategory.name }}</h1>
         </div>
         <div class="header-actions">
           <el-input
@@ -108,7 +109,7 @@
       </div>
 
       <div class="stats">
-        <el-tag>{{ selectedCategory.name }} - 共 {{ photos.length }} 张图片</el-tag>
+        <el-tag>{{ currentCategory.name }} - 共 {{ photos.length }} 张图片</el-tag>
         <el-tag v-if="searchQuery" type="info">
           搜索结果: {{ filteredPhotos.length }} 张
         </el-tag>
@@ -137,27 +138,31 @@
       </div>
 
       <div v-else class="image-grid">
-        <div v-for="photo in filteredPhotos" :key="photo.id" class="image-item">
-          <el-image
-            :src="getPhotoUrl(photo.url)"
-            :alt="photo.name"
-            fit="cover"
-            loading="lazy"
-            :preview-src-list="previewList"
-            :initial-index="getPhotoIndex(photo.id)"
-          >
-            <template #placeholder>
-              <div class="image-placeholder">
-                <el-icon><Picture /></el-icon>
-              </div>
-            </template>
-            <template #error>
-              <div class="image-error">
-                <el-icon><Picture /></el-icon>
-                <span>加载失败</span>
-              </div>
-            </template>
-          </el-image>
+        <div v-for="(photo, index) in filteredPhotos" :key="photo.id" class="image-item">
+          <div class="image-container" @click="openImageViewer(index)">
+            <el-image
+              :src="getPhotoUrl(photo.url)"
+              :alt="photo.name"
+              fit="cover"
+              loading="lazy"
+              class="clickable-image"
+            >
+              <template #placeholder>
+                <div class="image-placeholder">
+                  <el-icon><Picture /></el-icon>
+                </div>
+              </template>
+              <template #error>
+                <div class="image-error">
+                  <el-icon><Picture /></el-icon>
+                  <span>加载失败</span>
+                </div>
+              </template>
+            </el-image>
+            <div class="image-overlay">
+              <el-icon class="view-icon"><ZoomIn /></el-icon>
+            </div>
+          </div>
           <div class="image-info">
             <h3>{{ photo.name }}</h3>
             <div class="image-meta">
@@ -168,24 +173,49 @@
         </div>
       </div>
     </div>
+
+    <!-- 全屏图片查看器 -->
+    <el-image-viewer
+      v-if="showImageViewer"
+      :url-list="imageViewerUrls"
+      :initial-index="currentImageIndex"
+      @close="closeImageViewer"
+      :zoom-rate="1.2"
+      :max-scale="7"
+      :min-scale="0.2"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ElImage, ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon } from 'element-plus'
-import { Picture, Search, ArrowLeft } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElImage, ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElImageViewer } from 'element-plus'
+import { Picture, Search, ArrowLeft, ZoomIn } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, type PhotoCategory, formatFileSize, getFileExtension } from '../api'
+
+// 路由相关
+const route = useRoute()
+const router = useRouter()
+
+// Props（从路由参数接收）
+const props = defineProps<{
+  category?: string
+}>()
 
 // 响应式数据
 const categories = ref<PhotoCategory[]>([])
 const photos = ref<MediaFile[]>([])
-const selectedCategory = ref<PhotoCategory | null>(null)
+const currentCategory = ref<PhotoCategory | null>(null)
 const loading = ref(false)
 const photosLoading = ref(false)
 const error = ref('')
 const photoError = ref('')
 const searchQuery = ref('')
+
+// 图片查看器相关
+const showImageViewer = ref(false)
+const currentImageIndex = ref(0)
 
 // 计算属性
 const totalPhotos = computed(() => {
@@ -201,7 +231,7 @@ const filteredPhotos = computed(() => {
   )
 })
 
-const previewList = computed(() => 
+const imageViewerUrls = computed(() => 
   filteredPhotos.value.map(photo => getPhotoUrl(photo.url))
 )
 
@@ -220,20 +250,18 @@ const loadCategories = async () => {
   }
 }
 
-const selectCategory = (category: PhotoCategory) => {
-  selectedCategory.value = category
-  searchQuery.value = ''
-  loadCategoryPhotos()
+const navigateToCategory = (category: PhotoCategory) => {
+  router.push(`/images/${category.id}`)
 }
 
 const loadCategoryPhotos = async () => {
-  if (!selectedCategory.value) return
+  if (!currentCategory.value) return
   
   photosLoading.value = true
   photoError.value = ''
   
   try {
-    photos.value = await apiService.getPhotosByCategory(selectedCategory.value.id)
+    photos.value = await apiService.getPhotosByCategory(currentCategory.value.id)
   } catch (err) {
     photoError.value = err instanceof Error ? err.message : '加载图片失败'
     console.error('加载图片失败:', err)
@@ -242,11 +270,34 @@ const loadCategoryPhotos = async () => {
   }
 }
 
-const backToCategories = () => {
-  selectedCategory.value = null
-  photos.value = []
-  searchQuery.value = ''
-  photoError.value = ''
+const findCategoryById = (categoryId: string): PhotoCategory | undefined => {
+  return categories.value.find(cat => cat.id === categoryId)
+}
+
+const handleRouteChange = async () => {
+  const categoryParam = props.category || route.params.category as string
+  
+  if (categoryParam) {
+    // 如果分类还没加载，先加载分类
+    if (categories.value.length === 0) {
+      await loadCategories()
+    }
+    
+    const category = findCategoryById(categoryParam)
+    if (category) {
+      currentCategory.value = category
+      searchQuery.value = ''
+      loadCategoryPhotos()
+    } else {
+      // 分类不存在，跳转回分类列表
+      router.push('/images')
+    }
+  } else {
+    currentCategory.value = null
+    photos.value = []
+    searchQuery.value = ''
+    photoError.value = ''
+  }
 }
 
 const getCoverUrl = (url: string) => {
@@ -257,13 +308,25 @@ const getPhotoUrl = (url: string) => {
   return apiService.getMediaUrl(url)
 }
 
-const getPhotoIndex = (photoId: string) => {
-  return filteredPhotos.value.findIndex(photo => photo.id === photoId)
+// 图片查看器方法
+const openImageViewer = (index: number) => {
+  currentImageIndex.value = index
+  showImageViewer.value = true
 }
 
+const closeImageViewer = () => {
+  showImageViewer.value = false
+  currentImageIndex.value = 0
+}
+
+// 监听路由变化
+watch(() => route.params.category, handleRouteChange, { immediate: true })
+
 // 生命周期
-onMounted(() => {
-  loadCategories()
+onMounted(async () => {
+  await loadCategories()
+  // 初始化时处理路由
+  handleRouteChange()
 })
 </script>
 
@@ -288,6 +351,11 @@ onMounted(() => {
       display: flex;
       align-items: center;
       gap: 1rem;
+
+      .back-link {
+        text-decoration: none;
+        color: inherit;
+      }
 
       .separator {
         color: #909399;
@@ -425,40 +493,78 @@ onMounted(() => {
     gap: 2rem;
 
     .image-item {
+      position: relative;
       background: white;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
 
       &:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+        .image-overlay {
+          opacity: 1;
+        }
       }
       
-      .el-image {
+      .image-container {
+        position: relative;
         width: 100%;
         height: 300px;
         border-radius: 12px 12px 0 0;
-      }
+        overflow: hidden;
+        cursor: pointer;
 
-      .image-placeholder,
-      .image-error {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        background: #f8f9fa;
-        color: #6c757d;
+        .clickable-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
         
-        .el-icon {
-          font-size: 3rem;
-          margin-bottom: 0.5rem;
+        .image-placeholder,
+        .image-error {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          background: #f8f9fa;
+          color: #6c757d;
+          
+          .el-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+          }
+
+          span {
+            font-size: 0.9rem;
+          }
         }
 
-        span {
-          font-size: 0.9rem;
+        .image-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 1;
+
+          .view-icon {
+            font-size: 3rem;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            padding: 1rem;
+          }
         }
       }
 
@@ -480,6 +586,29 @@ onMounted(() => {
       }
     }
   }
+}
+
+// 全屏图片查看器样式覆盖
+:deep(.el-image-viewer__mask) {
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+:deep(.el-image-viewer__btn) {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+}
+
+:deep(.el-image-viewer__close) {
+  font-size: 1.5rem;
+}
+
+:deep(.el-image-viewer__prev),
+:deep(.el-image-viewer__next) {
+  font-size: 1.5rem;
 }
 
 @media (max-width: 768px) {

@@ -14,6 +14,12 @@ const router = createRouter({
       component: () => import('../views/Images.vue')
     },
     {
+      path: '/images/:category',
+      name: 'images-category',
+      component: () => import('../views/Images.vue'),
+      props: true
+    },
+    {
       path: '/videos',
       name: 'videos',
       component: () => import('../views/Videos.vue')

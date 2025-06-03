@@ -48,12 +48,12 @@
       <h2>最新内容</h2>
       <div class="recent-grid">
         <div 
-          v-for="item in recentMedia.slice(0, 6)" 
+          v-for="(item, index) in recentMedia.slice(0, 6)" 
           :key="item.id" 
           class="recent-item"
-          @click="viewMedia(item)"
+          @click="handleMediaClick(item, index)"
         >
-          <div class="media-preview">
+          <div class="media-preview" @click.stop="handleMediaClick(item, index)">
             <el-image 
               v-if="item.type === 'image'"
               :src="getMediaUrl(item.url)"
@@ -67,6 +67,9 @@
                 </div>
               </template>
             </el-image>
+            <div v-if="item.type === 'image'" class="image-overlay">
+              <el-icon><ZoomIn /></el-icon>
+            </div>
             <div v-else class="video-preview">
               <video :src="getMediaUrl(item.url)" preload="metadata" muted>
                 您的浏览器不支持视频播放
@@ -92,6 +95,17 @@
         <el-button type="primary" @click="$router.push('/videos')">查看所有视频</el-button>
       </div>
     </div>
+
+    <!-- 全屏图片查看器 -->
+    <el-image-viewer
+      v-if="showImageViewer"
+      :url-list="recentImageUrls"
+      :initial-index="currentImageIndex"
+      @close="closeImageViewer"
+      :zoom-rate="1.2"
+      :max-scale="7"
+      :min-scale="0.2"
+    />
 
     <!-- 功能特性 -->
     <div class="features">
@@ -119,8 +133,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
-import { ElCard, ElIcon, ElTag, ElImage, ElButton } from 'element-plus'
-import { Picture, VideoPlay, View, Search, Download } from '@element-plus/icons-vue'
+import { ElCard, ElIcon, ElTag, ElImage, ElButton, ElImageViewer } from 'element-plus'
+import { Picture, VideoPlay, View, Search, Download, ZoomIn } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize } from '../api'
 import { useRouter } from 'vue-router'
 
@@ -133,6 +147,9 @@ const mediaStats = reactive({
   total: 0
 })
 const recentMedia = ref<MediaFile[]>([])
+const showImageViewer = ref(false)
+const currentImageIndex = ref(0)
+const recentImageUrls = ref<string[]>([])
 
 // 方法
 const loadMediaStats = async () => {
@@ -172,11 +189,27 @@ const getMediaUrl = (url: string) => {
 }
 
 const viewMedia = (item: MediaFile) => {
-  if (item.type === 'image') {
+  if (item.type === 'image' && item.category) {
+    router.push(`/images/${item.category}`)
+  } else if (item.type === 'image') {
     router.push('/images')
   } else {
     router.push('/videos')
   }
+}
+
+const handleMediaClick = (item: MediaFile, index: number) => {
+  if (item.type === 'image') {
+    currentImageIndex.value = 0
+    recentImageUrls.value = [getMediaUrl(item.url)]
+    showImageViewer.value = true
+  } else {
+    viewMedia(item)
+  }
+}
+
+const closeImageViewer = () => {
+  showImageViewer.value = false
 }
 
 // 生命周期
@@ -355,9 +388,37 @@ onMounted(() => {
           height: 150px;
           overflow: hidden;
 
+          &:hover .video-overlay,
+          &:hover .image-overlay {
+            opacity: 1;
+          }
+
           .el-image {
             width: 100%;
             height: 100%;
+          }
+
+          .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+
+            .el-icon {
+              font-size: 2rem;
+              color: white;
+              background: rgba(0, 0, 0, 0.6);
+              border-radius: 50%;
+              padding: 0.5rem;
+            }
           }
 
           .image-placeholder {
@@ -392,6 +453,11 @@ onMounted(() => {
               transform: translate(-50%, -50%);
               color: white;
               font-size: 2rem;
+              background: rgba(0, 0, 0, 0.6);
+              border-radius: 50%;
+              padding: 0.5rem;
+              opacity: 0.8;
+              transition: opacity 0.3s ease;
             }
           }
         }
@@ -473,6 +539,29 @@ onMounted(() => {
       }
     }
   }
+}
+
+// 全屏图片查看器样式覆盖
+:deep(.el-image-viewer__mask) {
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+:deep(.el-image-viewer__btn) {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+}
+
+:deep(.el-image-viewer__close) {
+  font-size: 1.5rem;
+}
+
+:deep(.el-image-viewer__prev),
+:deep(.el-image-viewer__next) {
+  font-size: 1.5rem;
 }
 
 @media (max-width: 768px) {

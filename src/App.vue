@@ -1,5 +1,22 @@
 <script setup lang="ts">
-import { ElContainer, ElHeader, ElMain, ElFooter } from 'element-plus'
+import { ElContainer, ElHeader, ElMain, ElFooter, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+import { apiService, type PhotoCategory } from './api'
+
+const categories = ref<PhotoCategory[]>([])
+
+const loadCategories = async () => {
+  try {
+    categories.value = await apiService.getPhotoCategories()
+  } catch (error) {
+    console.error('加载分类失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadCategories()
+})
 </script>
 
 <template>
@@ -10,7 +27,26 @@ import { ElContainer, ElHeader, ElMain, ElFooter } from 'element-plus'
           VisionPro
         </router-link>
         <div class="nav-links">
-          <router-link to="/images">图片</router-link>
+          <el-dropdown trigger="hover">
+            <span class="nav-item">
+              图片
+              <el-icon class="el-icon--right">
+                <ArrowDown />
+              </el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <router-link to="/images">
+                  <el-dropdown-item>所有分类</el-dropdown-item>
+                </router-link>
+                <el-dropdown-item divided v-for="category in categories" :key="category.id">
+                  <router-link :to="`/images/${category.id}`">
+                    {{ category.name }}
+                  </router-link>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <router-link to="/videos">视频</router-link>
         </div>
       </nav>
@@ -68,6 +104,20 @@ body {
   .nav-links {
     display: flex;
     gap: 2rem;
+    align-items: center;
+
+    .nav-item {
+      color: #606266;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.3s;
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        color: #409EFF;
+      }
+    }
 
     a {
       text-decoration: none;
@@ -77,6 +127,14 @@ body {
 
       &:hover, &.router-link-active {
         color: #409EFF;
+      }
+    }
+
+    .el-dropdown-menu {
+      a {
+        display: block;
+        width: 100%;
+        color: inherit;
       }
     }
   }
