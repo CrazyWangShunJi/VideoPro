@@ -137,17 +137,30 @@ const recentMedia = ref<MediaFile[]>([])
 // 方法
 const loadMediaStats = async () => {
   try {
-    const [photos, videos] = await Promise.all([
-      apiService.getPhotos(),
+    const [categories, videos] = await Promise.all([
+      apiService.getPhotoCategories(),
       apiService.getVideos()
     ])
     
-    mediaStats.photos = photos.length
-    mediaStats.videos = videos.length
-    mediaStats.total = photos.length + videos.length
+    // 计算总图片数量
+    const totalPhotos = categories.reduce((total, category) => total + category.photoCount, 0)
     
-    // 获取最新媒体文件（按名称排序，模拟按时间排序）
-    const allMedia = [...photos, ...videos].sort(() => Math.random() - 0.5)
+    mediaStats.photos = totalPhotos
+    mediaStats.videos = videos.length
+    mediaStats.total = totalPhotos + videos.length
+    
+    // 获取最新媒体文件（从分类中获取图片）
+    const allPhotos = []
+    for (const category of categories) {
+      try {
+        const categoryPhotos = await apiService.getPhotosByCategory(category.id)
+        allPhotos.push(...categoryPhotos)
+      } catch (error) {
+        console.error(`获取分类 ${category.name} 的图片失败:`, error)
+      }
+    }
+    
+    const allMedia = [...allPhotos, ...videos].sort(() => Math.random() - 0.5)
     recentMedia.value = allMedia.slice(0, 8)
   } catch (error) {
     console.error('加载媒体统计信息失败:', error)

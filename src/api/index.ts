@@ -8,6 +8,20 @@ export interface MediaFile {
   url: string
   size: number
   type: 'image' | 'video'
+  category?: string
+  categoryName?: string
+}
+
+// 图片分类接口类型定义
+export interface PhotoCategory {
+  id: string
+  name: string
+  englishName: string
+  photoCount: number
+  coverImage: {
+    name: string
+    url: string
+  } | null
 }
 
 // API响应包装器
@@ -31,6 +45,16 @@ class ApiService {
       console.error(`API请求失败 [${endpoint}]:`, error)
       throw error
     }
+  }
+
+  // 获取图片分类列表
+  async getPhotoCategories(): Promise<PhotoCategory[]> {
+    return this.request<PhotoCategory[]>('/api/photo-categories')
+  }
+
+  // 获取某个分类下的所有图片
+  async getPhotosByCategory(category: string): Promise<MediaFile[]> {
+    return this.request<MediaFile[]>(`/api/photos/${category}`)
   }
 
   // 获取所有照片
