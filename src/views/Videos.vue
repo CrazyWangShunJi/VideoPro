@@ -57,7 +57,7 @@
           >
             您的浏览器不支持视频播放
           </video>
-          <div class="video-overlay">
+          <div class="video-overlay" @click="playVideo(video)">
             <el-icon class="play-icon"><VideoPlay /></el-icon>
           </div>
         </div>
