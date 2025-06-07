@@ -1,6 +1,6 @@
 // API基础配置
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV ? 'http://localhost:3001' : 'http://114.55.73.26:3001')
+  (import.meta.env.DEV ? 'http://114.55.73.26:3001' : 'http://114.55.73.26:3001')
 
 // 媒体文件接口类型定义
 export interface MediaFile {
