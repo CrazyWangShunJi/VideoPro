@@ -68,40 +68,16 @@
     </div>
 
     <div v-else class="video-grid">
-      <div v-for="video in filteredVideos" :key="video.id" class="video-item">
-        <div class="video-container">
-          <VideoPlayer
-            :video-url="video.url"
-            :poster-url="getVideoPoster(video)"
-            :enable-quality-selector="false"
-            @loadedmetadata="(duration) => onVideoLoaded(video, duration)"
-            @error="(error) => onVideoError(video, error)"
-          />
-          <div class="video-overlay" @click="playVideo(video)">
-            <el-icon class="play-icon"><VideoPlay /></el-icon>
-          </div>
-        </div>
-        <div class="video-info">
-          <h3>{{ video.name }}</h3>
-          <div class="video-meta">
-            <el-tag size="small">{{ formatFileSize(video.size) }}</el-tag>
-            <el-tag size="small" type="info">{{ getFileExtension(video.name).toUpperCase() }}</el-tag>
-            <el-tag v-if="video.categoryName" size="small" type="success">
-              {{ video.categoryName }}
-            </el-tag>
-          </div>
-          <div class="video-actions">
-            <el-button size="small" @click="playVideo(video)" type="primary">
-              <el-icon><VideoPlay /></el-icon>
-              播放
-            </el-button>
-            <el-button size="small" @click="downloadVideo(video)">
-              <el-icon><Download /></el-icon>
-              下载
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <VideoCard
+        v-for="video in filteredVideos"
+        :key="video.id"
+        :video="video"
+        :show-info-button="true"
+        :lazy-load="true"
+        @play="playVideo"
+        @download="downloadVideo"
+        @info="showVideoInfo"
+      />
     </div>
 
     <!-- 视频播放对话框 -->
@@ -116,9 +92,13 @@
         <VideoPlayer
           v-if="currentVideo"
           :video-url="currentVideo.url"
+          :category="currentVideo.category"
+          :filename="currentVideo.name"
           :autoplay="true"
           :enable-quality-selector="true"
+          :enable-auto-quality="true"
           @ended="closeVideoDialog"
+          @qualityChanged="(quality) => console.log('质量已切换至:', quality)"
         />
       </div>
     </el-dialog>
@@ -132,6 +112,7 @@ import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElDialog, ElBreadcr
 import { VideoPlay, Download, Search } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize, getFileExtension } from '../api'
 import VideoPlayer from '../components/VideoPlayer.vue'
+import VideoCard from '../components/VideoCard.vue'
 
 // 路由
 const router = useRouter()
@@ -233,6 +214,11 @@ const onVideoError = (video: MediaFile, error?: any) => {
   console.error('视频加载失败', video.name, error)
 }
 
+const showVideoInfo = (video: MediaFile) => {
+  console.log('显示视频详情:', video.name)
+  // 这里可以实现显示视频详细信息的逻辑
+}
+
 // 监听路由参数变化
 watch(() => route.params.category, (newCategory) => {
   currentCategory.value = newCategory as string | undefined
@@ -293,82 +279,6 @@ onMounted(() => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 2rem;
-
-    .video-item {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-
-        .video-overlay {
-          opacity: 1;
-        }
-      }
-
-      .video-container {
-        position: relative;
-        width: 100%;
-        height: 240px;
-        background: #000;
-        border-radius: 12px 12px 0 0;
-        overflow: hidden;
-
-        video {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .video-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.3);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          cursor: pointer;
-
-          .play-icon {
-            font-size: 4rem;
-            color: white;
-          }
-        }
-      }
-
-      .video-info {
-        padding: 1.5rem;
-
-        h3 {
-          margin: 0 0 1rem;
-          font-size: 1.1rem;
-          color: #2c3e50;
-          word-break: break-word;
-        }
-
-        .video-meta {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-          margin-bottom: 1rem;
-        }
-
-        .video-actions {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
-      }
-    }
   }
 
   .video-dialog-container {

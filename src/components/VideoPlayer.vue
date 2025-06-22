@@ -2,10 +2,10 @@
   <div class="video-player" ref="playerContainer">
     <video
       ref="videoElement"
-      :src="streamUrl"
+      :src="currentVideoUrl"
       :poster="posterUrl"
       controls
-      preload="metadata"
+      :preload="preloadStrategy"
       playsinline
       webkit-playsinline
       @loadstart="onLoadStart"
@@ -31,6 +31,10 @@
       <div class="loading-spinner">
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>视频加载中...</span>
+        <div class="loading-progress" v-if="loadingProgress > 0">
+          <el-progress :percentage="loadingProgress" :show-text="false" />
+          <span class="progress-text">{{ loadingProgress.toFixed(1) }}%</span>
+        </div>
       </div>
     </div>
     
@@ -40,27 +44,43 @@
         <el-icon><Warning /></el-icon>
         <span>视频加载失败</span>
         <el-button size="small" @click="retryLoad">重试</el-button>
+        <el-button size="small" @click="tryLowerQuality" v-if="canDowngrade">
+          尝试低画质
+        </el-button>
       </div>
     </div>
     
     <!-- 播放质量选择 -->
-    <div v-if="showQualitySelector" class="quality-selector">
+    <div v-if="showQualitySelector && availableQualities.length > 0" class="quality-selector">
       <el-select v-model="selectedQuality" @change="changeQuality" size="small">
-        <el-option label="自动" value="auto" />
-        <el-option label="1080p" value="1080p" />
-        <el-option label="720p" value="720p" />
-        <el-option label="480p" value="480p" />
-        <el-option label="360p" value="360p" />
+        <el-option label="240P 流畅" value="240p" />
+        <el-option label="360P 清晰" value="360p" />
+        <el-option label="480P 标清" value="480p" />
+        <el-option label="720P 高清" value="720p" />
+        <el-option label="自动选择" value="auto" />
       </el-select>
+    </div>
+
+    <!-- 网络状态指示器 -->
+    <div v-if="showNetworkStatus" class="network-status" :class="networkStatusClass">
+      <el-icon><Connection /></el-icon>
+      <span>{{ networkStatusText }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { ElIcon, ElButton, ElSelect, ElOption } from 'element-plus'
-import { Loading, Warning } from '@element-plus/icons-vue'
+import { ElIcon, ElButton, ElSelect, ElOption, ElProgress } from 'element-plus'
+import { Loading, Warning, Connection } from '@element-plus/icons-vue'
 import { apiService } from '../api'
+import { 
+  NETWORK_CONFIG, 
+  DEFAULT_PLAYER_CONFIG, 
+  NETWORK_DETECTION_CONFIG,
+  getRecommendedQuality,
+  calculateBufferSize 
+} from '../config/video'
 
 // Props
 interface Props {
@@ -72,6 +92,9 @@ interface Props {
   width?: string | number
   height?: string | number
   enableQualitySelector?: boolean
+  enableAutoQuality?: boolean
+  category?: string
+  filename?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -80,7 +103,8 @@ const props = withDefaults(defineProps<Props>(), {
   loop: false,
   width: '100%',
   height: 'auto',
-  enableQualitySelector: false
+  enableQualitySelector: true,
+  enableAutoQuality: true
 })
 
 // Emits
@@ -93,6 +117,7 @@ const emit = defineEmits<{
   ended: []
   error: [error: any]
   timeupdate: [currentTime: number, duration: number]
+  qualityChanged: [quality: string]
 }>()
 
 // 响应式数据
@@ -100,25 +125,128 @@ const videoElement = ref<HTMLVideoElement>()
 const playerContainer = ref<HTMLDivElement>()
 const isLoading = ref(true)
 const hasError = ref(false)
-const selectedQuality = ref('auto')
+const selectedQuality = ref('360p')
+const availableQualities = ref<string[]>([])
 const showQualitySelector = ref(props.enableQualitySelector)
+const loadingProgress = ref(0)
+const networkSpeed = ref(0)
+const showNetworkStatus = ref(false)
+const retryCount = ref(0)
+const maxRetries = DEFAULT_PLAYER_CONFIG.maxRetries
+
+// 网络状态
+const networkStatus = ref<'fast' | 'medium' | 'slow' | 'offline'>('medium')
 
 // 计算属性
-const streamUrl = computed(() => {
-  // 解析视频URL，优先使用流媒体接口
-  const url = props.videoUrl
-  if (url.includes('/assets/video/')) {
-    const pathParts = url.split('/assets/video/')[1].split('/')
-    if (pathParts.length >= 2) {
-      const category = pathParts[0]
-      const filename = pathParts[1]
-      return apiService.getMediaUrl(`/api/stream/${category}/${filename}`)
-    }
+const currentVideoUrl = computed(() => {
+  if (!props.category || !props.filename) {
+    return apiService.getMediaUrl(props.videoUrl)
   }
-  return apiService.getMediaUrl(url)
+
+  // 根据选择的质量和网络状况决定使用哪个视频
+  let targetQuality = selectedQuality.value
+  
+  if (targetQuality === 'auto') {
+    targetQuality = getAutoQuality()
+  }
+
+  console.log(`🎬 选择的质量: ${selectedQuality.value}, 目标质量: ${targetQuality}`)
+
+  // 优先使用优化版本，如果存在的话
+  if (targetQuality && targetQuality !== 'auto') {
+    const optimizedUrl = `/api/optimized/${props.category}/${props.filename}?quality=${targetQuality}`
+    console.log(`🎯 使用优化视频: ${optimizedUrl}`)
+    return apiService.getMediaUrl(optimizedUrl)
+  }
+
+  // 回退到流媒体接口
+  const streamUrl = `/api/stream/${props.category}/${props.filename}`
+  console.log(`🔄 回退到流媒体: ${streamUrl}`)
+  return apiService.getMediaUrl(streamUrl)
+})
+
+const preloadStrategy = computed(() => {
+  // 根据网络状况调整预加载策略
+  switch (networkStatus.value) {
+    case 'fast':
+      return 'auto'
+    case 'medium':
+      return 'metadata'
+    case 'slow':
+      return 'none'
+    default:
+      return 'metadata'
+  }
+})
+
+const canDowngrade = computed(() => {
+  const qualityOrder = ['720p', '480p', '360p', '240p']
+  const currentIndex = qualityOrder.indexOf(selectedQuality.value)
+  return currentIndex < qualityOrder.length - 1 || selectedQuality.value !== '240p'
+})
+
+const networkStatusClass = computed(() => {
+  return `network-${networkStatus.value}`
+})
+
+const networkStatusText = computed(() => {
+  const statusMap = {
+    fast: '网络良好',
+    medium: '网络一般',
+    slow: '网络较慢',
+    offline: '网络断开'
+  }
+  return statusMap[networkStatus.value]
 })
 
 // 方法
+const getAutoQuality = () => {
+  const validNetworkStatus = networkStatus.value === 'offline' ? 'slow' : networkStatus.value
+  return getRecommendedQuality(validNetworkStatus, availableQualities.value)
+}
+
+const detectNetworkSpeed = async () => {
+  try {
+    const startTime = Date.now()
+    const response = await fetch(apiService.getMediaUrl(NETWORK_DETECTION_CONFIG.testUrl), {
+      cache: 'no-cache'
+    })
+    const endTime = Date.now()
+    const duration = endTime - startTime
+    
+    const thresholds = NETWORK_DETECTION_CONFIG.thresholds
+    if (duration < thresholds.fast) {
+      networkStatus.value = 'fast'
+    } else if (duration < thresholds.medium) {
+      networkStatus.value = 'medium'
+    } else {
+      networkStatus.value = 'slow'
+    }
+    
+    console.log(`网络检测: ${duration}ms, 状态: ${networkStatus.value}`)
+  } catch (error) {
+    networkStatus.value = 'offline'
+    console.error('网络检测失败:', error)
+  }
+}
+
+const loadAvailableQualities = async () => {
+  if (!props.category || !props.filename) {
+    return
+  }
+
+  try {
+    const videoInfo = await apiService.getVideoInfo(props.category, props.filename)
+    if (videoInfo.availableQualities) {
+      availableQualities.value = videoInfo.availableQualities
+    }
+  } catch (error) {
+    console.warn('获取视频质量信息失败:', error)
+    // 设置默认质量选项
+    availableQualities.value = ['480p', '720p', '1080p']
+  }
+}
+
 const onLoadStart = () => {
   isLoading.value = true
   hasError.value = false
@@ -180,7 +308,14 @@ const onTimeUpdate = () => {
 }
 
 const onProgress = () => {
-  // 可以在这里处理缓冲进度
+  const video = videoElement.value
+  if (video && video.buffered.length > 0) {
+    const bufferedEnd = video.buffered.end(video.buffered.length - 1)
+    const duration = video.duration
+    if (duration > 0) {
+      loadingProgress.value = (bufferedEnd / duration) * 100
+    }
+  }
 }
 
 const onVolumeChange = () => {
@@ -188,17 +323,44 @@ const onVolumeChange = () => {
 }
 
 const retryLoad = () => {
+  if (retryCount.value >= maxRetries) {
+    console.log('已达到最大重试次数')
+    return
+  }
+  
+  retryCount.value++
   hasError.value = false
   isLoading.value = true
+  loadingProgress.value = 0
+  
+  console.log(`重试加载视频 (${retryCount.value}/${maxRetries})`)
+  
   if (videoElement.value) {
     videoElement.value.load()
   }
 }
 
-const changeQuality = (quality: string) => {
-  // 这里可以实现质量切换逻辑
+const changeQuality = async (quality: string) => {
   console.log('切换视频质量:', quality)
-  // 在实际应用中，这里需要根据质量设置不同的视频源
+  
+  const currentTime = videoElement.value?.currentTime || 0
+  const wasPlaying = videoElement.value && !videoElement.value.paused
+  
+  // 切换质量
+  selectedQuality.value = quality
+  
+  // 等待视频加载
+  await nextTick()
+  
+  // 恢复播放位置
+  if (videoElement.value) {
+    videoElement.value.currentTime = currentTime
+    if (wasPlaying) {
+      videoElement.value.play()
+    }
+  }
+  
+  emit('qualityChanged', quality)
 }
 
 const play = () => {
@@ -221,6 +383,22 @@ const setVolume = (volume: number) => {
   }
 }
 
+const tryLowerQuality = () => {
+  const qualityOrder = ['720p', '480p', '360p', '240p']
+  const currentIndex = qualityOrder.indexOf(selectedQuality.value)
+  let targetQuality = '240p' // 默认最低质量
+  
+  if (currentIndex >= 0 && currentIndex < qualityOrder.length - 1) {
+    // 选择下一个更低的质量
+    targetQuality = qualityOrder[currentIndex + 1]
+  } else if (selectedQuality.value !== '240p') {
+    targetQuality = '240p'
+  }
+  
+  console.log(`尝试低画质: ${selectedQuality.value} -> ${targetQuality}`)
+  changeQuality(targetQuality)
+}
+
 // 暴露方法给父组件
 defineExpose({
   play,
@@ -231,15 +409,25 @@ defineExpose({
 })
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 加载可用质量选项
+  await loadAvailableQualities()
+  
+  // 初始化网络检测
+  await detectNetworkSpeed()
+  
+  // 确保默认质量为360p（更适合网络播放）
+  if (!selectedQuality.value || selectedQuality.value === 'auto') {
+    selectedQuality.value = '360p'
+  }
+  
+  console.log(`🎯 初始化质量设置: ${selectedQuality.value}`)
+  
   // 设置视频元素的初始属性
   nextTick(() => {
     if (videoElement.value) {
       videoElement.value.muted = props.muted
       videoElement.value.loop = props.loop
-      
-      // 预加载优化
-      videoElement.value.preload = 'metadata'
       
       // 移动端优化
       videoElement.value.setAttribute('playsinline', 'true')
@@ -249,6 +437,13 @@ onMounted(() => {
         videoElement.value.autoplay = true
       }
     }
+  })
+  
+  // 定期检测网络状态
+  const networkCheckInterval = setInterval(detectNetworkSpeed, DEFAULT_PLAYER_CONFIG.networkCheckInterval)
+  
+  onUnmounted(() => {
+    clearInterval(networkCheckInterval)
   })
 })
 
@@ -363,6 +558,44 @@ watch(() => props.videoUrl, () => {
 .video-player:-moz-full-screen {
   video {
     object-fit: contain;
+  }
+}
+
+.network-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  padding: 5px 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  .el-icon {
+    font-size: 1.5rem;
+  }
+
+  span {
+    color: white;
+    font-size: 1rem;
+  }
+
+  &.network-fast {
+    background-color: #409EFF;
+  }
+
+  &.network-medium {
+    background-color: #E6A23C;
+  }
+
+  &.network-slow {
+    background-color: #F56C6C;
+  }
+
+  &.network-offline {
+    background-color: #909399;
   }
 }
 </style> 
