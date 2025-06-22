@@ -24,7 +24,7 @@ onMounted(() => {
     <el-header>
       <nav class="nav-menu">
         <router-link to="/" class="logo">
-          VisionPro
+          香柏光影
         </router-link>
         <div class="nav-links">
           <el-dropdown trigger="hover">

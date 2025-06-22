@@ -10,7 +10,21 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          element: ['element-plus']
+        }
+      }
+    }
+  },
   server: {
+    host: '0.0.0.0', // 允许外部访问
     port: 3000,
     open: true,
     proxy: {

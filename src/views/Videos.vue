@@ -1,7 +1,24 @@
 <template>
   <div class="videos-gallery">
+    <!-- 面包屑导航 -->
+    <div class="breadcrumb">
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item>
+          <router-link to="/">首页</router-link>
+        </el-breadcrumb-item>
+        <el-breadcrumb-item>
+          <router-link to="/videos">视频分类</router-link>
+        </el-breadcrumb-item>
+        <el-breadcrumb-item v-if="currentCategory">
+          {{ getCategoryName(currentCategory) }}
+        </el-breadcrumb-item>
+      </el-breadcrumb>
+    </div>
+
     <div class="header">
-      <h1>视频集合</h1>
+      <h1>
+        {{ currentCategory ? getCategoryName(currentCategory) : '所有视频' }}
+      </h1>
       <div class="header-actions">
         <el-input
           v-model="searchQuery"
@@ -12,6 +29,9 @@
         <el-button @click="loadVideos" :loading="loading" type="primary">
           刷新
         </el-button>
+        <el-button v-if="currentCategory" @click="goBack" type="default">
+          返回分类
+        </el-button>
       </div>
     </div>
 
@@ -19,6 +39,9 @@
       <el-tag>总共 {{ videos.length }} 个视频</el-tag>
       <el-tag v-if="searchQuery" type="info">
         搜索结果: {{ filteredVideos.length }} 个
+      </el-tag>
+      <el-tag v-if="currentCategory" type="success">
+        分类: {{ getCategoryName(currentCategory) }}
       </el-tag>
     </div>
 
@@ -66,6 +89,9 @@
           <div class="video-meta">
             <el-tag size="small">{{ formatFileSize(video.size) }}</el-tag>
             <el-tag size="small" type="info">{{ getFileExtension(video.name).toUpperCase() }}</el-tag>
+            <el-tag v-if="video.categoryName" size="small" type="success">
+              {{ video.categoryName }}
+            </el-tag>
           </div>
           <div class="video-actions">
             <el-button size="small" @click="playVideo(video)" type="primary">
@@ -106,10 +132,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElDialog } from 'element-plus'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElDialog, ElBreadcrumb, ElBreadcrumbItem } from 'element-plus'
 import { VideoPlay, Download, Search } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize, getFileExtension } from '../api'
+
+// 路由
+const router = useRouter()
+const route = useRoute()
+
+// Props
+const props = defineProps<{
+  category?: string
+}>()
 
 // 响应式数据
 const videos = ref<MediaFile[]>([])
@@ -118,6 +154,14 @@ const error = ref('')
 const searchQuery = ref('')
 const dialogVisible = ref(false)
 const currentVideo = ref<MediaFile | null>(null)
+const currentCategory = ref<string | undefined>(props.category)
+
+// 分类名称映射
+const categoryNames = {
+  'activity': '活动',
+  'TVC': '宣传片',
+  'short_video': '短视频'
+}
 
 // 计算属性
 const filteredVideos = computed(() => {
@@ -130,12 +174,22 @@ const filteredVideos = computed(() => {
 })
 
 // 方法
+const getCategoryName = (categoryId: string) => {
+  return categoryNames[categoryId as keyof typeof categoryNames] || categoryId
+}
+
 const loadVideos = async () => {
   loading.value = true
   error.value = ''
   
   try {
-    videos.value = await apiService.getVideos()
+    if (currentCategory.value) {
+      // 加载特定分类的视频
+      videos.value = await apiService.getVideosByCategory(currentCategory.value)
+    } else {
+      // 加载所有视频
+      videos.value = await apiService.getVideos()
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '加载视频失败'
     console.error('加载视频失败:', err)
@@ -172,6 +226,10 @@ const downloadVideo = (video: MediaFile) => {
   document.body.removeChild(link)
 }
 
+const goBack = () => {
+  router.push('/videos')
+}
+
 const onVideoLoaded = (event: Event) => {
   console.log('视频加载完成', event)
 }
@@ -180,8 +238,15 @@ const onVideoError = (event: Event) => {
   console.error('视频加载失败', event)
 }
 
+// 监听路由参数变化
+watch(() => route.params.category, (newCategory) => {
+  currentCategory.value = newCategory as string | undefined
+  loadVideos()
+}, { immediate: false })
+
 // 生命周期
 onMounted(() => {
+  currentCategory.value = route.params.category as string | undefined
   loadVideos()
 })
 </script>

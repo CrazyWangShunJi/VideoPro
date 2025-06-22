@@ -1,6 +1,5 @@
 // API基础配置
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV ? 'http://114.55.73.26:3001' : 'http://114.55.73.26:3001')
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://114.55.73.26:3001'
 
 // 媒体文件接口类型定义
 export interface MediaFile {
@@ -25,17 +24,40 @@ export interface PhotoCategory {
   } | null
 }
 
+// 视频分类接口类型定义
+export interface VideoCategory {
+  id: string
+  name: string
+  englishName: string
+  videoCount: number
+  coverVideo: {
+    name: string
+    url: string
+  } | null
+}
+
 // API响应包装器
 class ApiService {
   private baseURL: string
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+    console.log('API Base URL:', this.baseURL) // 添加调试日志
   }
 
   private async request<T>(endpoint: string): Promise<T> {
+    const fullUrl = `${this.baseURL}${endpoint}`
+    console.log('API请求URL:', fullUrl) // 添加调试日志
+    
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`)
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // 添加超时设置
+        signal: AbortSignal.timeout(10000) // 10秒超时
+      })
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -53,9 +75,19 @@ class ApiService {
     return this.request<PhotoCategory[]>('/api/photo-categories')
   }
 
+  // 获取视频分类列表
+  async getVideoCategories(): Promise<VideoCategory[]> {
+    return this.request<VideoCategory[]>('/api/video-categories')
+  }
+
   // 获取某个分类下的所有图片
   async getPhotosByCategory(category: string): Promise<MediaFile[]> {
     return this.request<MediaFile[]>(`/api/photos/${category}`)
+  }
+
+  // 获取某个分类下的所有视频
+  async getVideosByCategory(category: string): Promise<MediaFile[]> {
+    return this.request<MediaFile[]>(`/api/videos/${category}`)
   }
 
   // 获取所有照片

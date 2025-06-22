@@ -22,7 +22,13 @@ const router = createRouter({
     {
       path: '/videos',
       name: 'videos',
-      component: () => import('../views/Videos.vue')
+      component: () => import('../views/VideoCategories.vue')
+    },
+    {
+      path: '/videos/:category',
+      name: 'videos-category',
+      component: () => import('../views/Videos.vue'),
+      props: true
     }
   ]
 })

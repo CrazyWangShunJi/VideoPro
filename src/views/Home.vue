@@ -1,9 +1,9 @@
 <template>
   <div class="home">
     <div class="hero">
-      <h1>欢迎来到VisionPro</h1>
+      <h1>欢迎来到香柏光影</h1>
       <p>发掘独一无二的视觉作品集</p>
-      <div class="hero-stats">
+      <!-- <div class="hero-stats">
         <div class="stat-item">
           <span class="stat-number">{{ mediaStats.photos }}</span>
           <span class="stat-label">张照片</span>
@@ -16,21 +16,10 @@
           <span class="stat-number">{{ mediaStats.total }}</span>
           <span class="stat-label">总文件数</span>
         </div>
-      </div>
+      </div> -->
     </div>
     
     <div class="categories">
-      <router-link to="/images" class="category">
-        <el-card class="photo-card" shadow="hover">
-          <div class="card-content">
-            <el-icon class="card-icon"><Picture /></el-icon>
-            <h2>图片合集</h2>
-            <p>浏览我们的精美图集，感受视觉之美</p>
-            <el-tag>{{ mediaStats.photos }} 张图片</el-tag>
-          </div>
-        </el-card>
-      </router-link>
-      
       <router-link to="/videos" class="category">
         <el-card class="video-card" shadow="hover">
           <div class="card-content">
@@ -38,6 +27,17 @@
             <h2>视频合集</h2>
             <p>观看我们的精选视频，体验动态魅力</p>
             <el-tag>{{ mediaStats.videos }} 个视频</el-tag>
+          </div>
+        </el-card>
+      </router-link>
+
+      <router-link to="/images" class="category">
+        <el-card class="photo-card" shadow="hover">
+          <div class="card-content">
+            <el-icon class="card-icon"><Picture /></el-icon>
+            <h2>图片合集</h2>
+            <p>浏览我们的精美图集，感受视觉之美</p>
+            <el-tag>{{ mediaStats.photos }} 张图片</el-tag>
           </div>
         </el-card>
       </router-link>
@@ -154,21 +154,23 @@ const recentImageUrls = ref<string[]>([])
 // 方法
 const loadMediaStats = async () => {
   try {
-    const [categories, videos] = await Promise.all([
+    const [photoCategories, videoCategories] = await Promise.all([
       apiService.getPhotoCategories(),
-      apiService.getVideos()
+      apiService.getVideoCategories()
     ])
     
     // 计算总图片数量
-    const totalPhotos = categories.reduce((total, category) => total + category.photoCount, 0)
+    const totalPhotos = photoCategories.reduce((total, category) => total + category.photoCount, 0)
+    // 计算总视频数量
+    const totalVideos = videoCategories.reduce((total, category) => total + category.videoCount, 0)
     
     mediaStats.photos = totalPhotos
-    mediaStats.videos = videos.length
-    mediaStats.total = totalPhotos + videos.length
+    mediaStats.videos = totalVideos
+    mediaStats.total = totalPhotos + totalVideos
     
-    // 获取最新媒体文件（从分类中获取图片）
+    // 获取最新媒体文件（从分类中获取图片和视频）
     const allPhotos = []
-    for (const category of categories) {
+    for (const category of photoCategories) {
       try {
         const categoryPhotos = await apiService.getPhotosByCategory(category.id)
         allPhotos.push(...categoryPhotos)
@@ -177,7 +179,17 @@ const loadMediaStats = async () => {
       }
     }
     
-    const allMedia = [...allPhotos, ...videos].sort(() => Math.random() - 0.5)
+    const allVideos = []
+    for (const category of videoCategories) {
+      try {
+        const categoryVideos = await apiService.getVideosByCategory(category.id)
+        allVideos.push(...categoryVideos)
+      } catch (error) {
+        console.error(`获取分类 ${category.name} 的视频失败:`, error)
+      }
+    }
+    
+    const allMedia = [...allPhotos, ...allVideos].sort(() => Math.random() - 0.5)
     recentMedia.value = allMedia.slice(0, 8)
   } catch (error) {
     console.error('加载媒体统计信息失败:', error)
@@ -193,6 +205,8 @@ const viewMedia = (item: MediaFile) => {
     router.push(`/images/${item.category}`)
   } else if (item.type === 'image') {
     router.push('/images')
+  } else if (item.type === 'video' && item.category) {
+    router.push(`/videos/${item.category}`)
   } else {
     router.push('/videos')
   }
@@ -221,12 +235,16 @@ onMounted(() => {
 <style scoped lang="scss">
 .home {
   .hero {
+    height: 100vh;
     min-height: 60vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-image: url('@/assets/backgroundOne.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     color: white;
     text-align: center;
     position: relative;
