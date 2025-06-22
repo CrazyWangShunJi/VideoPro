@@ -60,19 +60,19 @@ export const VIDEO_QUALITIES: VideoQualityConfig[] = [
 // 网络状况配置 - 根据网络状况智能选择质量
 export const NETWORK_CONFIG: NetworkConfig = {
   fast: {
-    preferredQuality: '720p', // 快速网络可以使用720p
+    preferredQuality: '480p', // 快速网络优先使用480p，避免过度消耗带宽
     preload: 'metadata',
-    bufferSize: 1024 // 1MB缓冲区
+    bufferSize: 512 // 512KB缓冲区
   },
   medium: {
-    preferredQuality: '480p', // 中等网络使用480p
+    preferredQuality: '360p', // 中等网络使用360p
     preload: 'metadata',
-    bufferSize: 512 // 512KB
+    bufferSize: 256 // 256KB
   },
   slow: {
-    preferredQuality: '360p', // 慢速网络使用360p
+    preferredQuality: '240p', // 慢速网络使用240p
     preload: 'none',
-    bufferSize: 256 // 256KB
+    bufferSize: 128 // 128KB
   }
 }
 
