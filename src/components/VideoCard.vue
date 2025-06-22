@@ -117,6 +117,10 @@ const loadVideoInfo = async () => {
     // 设置缩略图URL
     if (info.thumbnailUrl) {
       thumbnailUrl.value = apiService.getMediaUrl(info.thumbnailUrl)
+    } else {
+      // 如果没有缩略图，尝试使用缩略图API
+      const videoName = props.video.name.replace(/\.[^/.]+$/, '') // 去掉扩展名
+      thumbnailUrl.value = apiService.getMediaUrl(`/api/thumbnail/${props.video.category}/${props.video.name}`)
     }
     
     // 设置可用质量
