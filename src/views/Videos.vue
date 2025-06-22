@@ -70,16 +70,13 @@
     <div v-else class="video-grid">
       <div v-for="video in filteredVideos" :key="video.id" class="video-item">
         <div class="video-container">
-          <video
-            :src="getVideoUrl(video.url)"
-            :poster="getVideoPoster(video)"
-            controls
-            preload="metadata"
-            @loadedmetadata="onVideoLoaded"
-            @error="onVideoError"
-          >
-            您的浏览器不支持视频播放
-          </video>
+          <VideoPlayer
+            :video-url="video.url"
+            :poster-url="getVideoPoster(video)"
+            :enable-quality-selector="false"
+            @loadedmetadata="(duration) => onVideoLoaded(video, duration)"
+            @error="(error) => onVideoError(video, error)"
+          />
           <div class="video-overlay" @click="playVideo(video)">
             <el-icon class="play-icon"><VideoPlay /></el-icon>
           </div>
@@ -116,16 +113,13 @@
       @close="closeVideoDialog"
     >
       <div class="video-dialog-container">
-        <video
+        <VideoPlayer
           v-if="currentVideo"
-          :src="getVideoUrl(currentVideo.url)"
-          controls
-          autoplay
-          width="100%"
+          :video-url="currentVideo.url"
+          :autoplay="true"
+          :enable-quality-selector="true"
           @ended="closeVideoDialog"
-        >
-          您的浏览器不支持视频播放
-        </video>
+        />
       </div>
     </el-dialog>
   </div>
@@ -137,6 +131,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElDialog, ElBreadcrumb, ElBreadcrumbItem } from 'element-plus'
 import { VideoPlay, Download, Search } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize, getFileExtension } from '../api'
+import VideoPlayer from '../components/VideoPlayer.vue'
 
 // 路由
 const router = useRouter()
@@ -230,12 +225,12 @@ const goBack = () => {
   router.push('/videos')
 }
 
-const onVideoLoaded = (event: Event) => {
-  console.log('视频加载完成', event)
+const onVideoLoaded = (video: MediaFile, duration?: number) => {
+  console.log('视频加载完成', video.name, duration)
 }
 
-const onVideoError = (event: Event) => {
-  console.error('视频加载失败', event)
+const onVideoError = (video: MediaFile, error?: any) => {
+  console.error('视频加载失败', video.name, error)
 }
 
 // 监听路由参数变化

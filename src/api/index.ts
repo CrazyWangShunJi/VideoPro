@@ -110,6 +110,16 @@ class ApiService {
     return this.request('/api/health')
   }
 
+  // 获取视频信息
+  async getVideoInfo(category: string, filename: string): Promise<any> {
+    return this.request(`/api/video-info/${category}/${filename}`)
+  }
+
+  // 获取视频流媒体URL
+  getStreamUrl(category: string, filename: string): string {
+    return `${this.baseURL}/api/stream/${category}/${filename}`
+  }
+
   // 获取完整的媒体文件URL
   getMediaUrl(url: string): string {
     return `${this.baseURL}${url}`
