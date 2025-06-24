@@ -119,9 +119,10 @@ const loadVideoInfo = async () => {
       thumbnailUrl.value = apiService.getMediaUrl(info.thumbnailUrl)
     } else {
       // 如果没有缩略图，尝试使用缩略图API
-      const videoName = props.video.name.replace(/\.[^/.]+$/, '') // 去掉扩展名
       thumbnailUrl.value = apiService.getMediaUrl(`/api/thumbnail/${props.video.category}/${props.video.name}`)
     }
+    
+    console.log('🖼️ 缩略图URL:', thumbnailUrl.value)
     
     // 设置可用质量
     if (info.availableQualities) {
@@ -169,8 +170,19 @@ const showVideoInfo = () => {
 onMounted(() => {
   if (!props.lazyLoad) {
     loadVideoInfo()
+  } else {
+    // 即使是懒加载，也先尝试加载缩略图
+    loadThumbnailOnly()
   }
 })
+
+// 仅加载缩略图的方法
+const loadThumbnailOnly = () => {
+  if (props.video.category) {
+    thumbnailUrl.value = apiService.getMediaUrl(`/api/thumbnail/${props.video.category}/${props.video.name}`)
+    console.log('🖼️ 懒加载缩略图URL:', thumbnailUrl.value)
+  }
+}
 
 // 暴露方法给父组件
 defineExpose({
