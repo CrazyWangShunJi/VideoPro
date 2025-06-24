@@ -132,11 +132,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, nextTick } from 'vue'
 import { ElCard, ElIcon, ElTag, ElImage, ElButton, ElImageViewer } from 'element-plus'
 import { Picture, VideoPlay, View, Search, Download, ZoomIn } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize } from '../api'
 import { useRouter } from 'vue-router'
+
+// 性能优化：显示加载状态
+const isLoading = ref(true)
 
 const router = useRouter()
 
@@ -241,7 +244,7 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-image: url('@/assets/backgroundOne.jpg');
+    background-image: url('@/assets/backgroundOne.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
