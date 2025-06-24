@@ -63,7 +63,7 @@ onMounted(() => {
 </template>
 
 <style>
-@import 'element-plus/dist/index.css';
+/* Element Plus CSS已改为按需引入，无需全量导入 */
 
 body {
   margin: 0;

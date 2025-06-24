@@ -15,8 +15,35 @@ import {
   ElSelect,
   ElOption,
   ElLoading,
-  ElMessage
+  ElMessage,
+  ElContainer,
+  ElHeader,
+  ElMain,
+  ElFooter,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem
 } from 'element-plus'
+
+// 按需引入Element Plus CSS样式
+import 'element-plus/es/components/button/style/css'
+import 'element-plus/es/components/icon/style/css'
+import 'element-plus/es/components/card/style/css'
+import 'element-plus/es/components/row/style/css'
+import 'element-plus/es/components/col/style/css'
+import 'element-plus/es/components/image/style/css'
+import 'element-plus/es/components/progress/style/css'
+import 'element-plus/es/components/select/style/css'
+import 'element-plus/es/components/option/style/css'
+import 'element-plus/es/components/loading/style/css'
+import 'element-plus/es/components/message/style/css'
+import 'element-plus/es/components/container/style/css'
+import 'element-plus/es/components/header/style/css'
+import 'element-plus/es/components/main/style/css'
+import 'element-plus/es/components/footer/style/css'
+import 'element-plus/es/components/dropdown/style/css'
+import 'element-plus/es/components/dropdown-menu/style/css'
+import 'element-plus/es/components/dropdown-item/style/css'
 
 // 只引入必要的图标
 import {
@@ -40,6 +67,13 @@ app.component('ElImage', ElImage)
 app.component('ElProgress', ElProgress)
 app.component('ElSelect', ElSelect)
 app.component('ElOption', ElOption)
+app.component('ElContainer', ElContainer)
+app.component('ElHeader', ElHeader)
+app.component('ElMain', ElMain)
+app.component('ElFooter', ElFooter)
+app.component('ElDropdown', ElDropdown)
+app.component('ElDropdownMenu', ElDropdownMenu)
+app.component('ElDropdownItem', ElDropdownItem)
 
 // 只注册需要的图标
 app.component('Loading', Loading)
