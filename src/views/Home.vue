@@ -44,7 +44,7 @@
     </div>
 
     <!-- 最新内容展示 -->
-    <div class="recent-content" v-if="recentMedia.length > 0">
+    <!-- <div class="recent-content" v-if="recentMedia.length > 0">
       <h2>最新内容</h2>
       <div class="recent-grid">
         <div 
@@ -94,10 +94,10 @@
         <el-button type="primary" @click="$router.push('/images')">查看所有图片</el-button>
         <el-button type="primary" @click="$router.push('/videos')">查看所有视频</el-button>
       </div>
-    </div>
+    </div> -->
 
     <!-- 全屏图片查看器 -->
-    <el-image-viewer
+    <!-- <el-image-viewer
       v-if="showImageViewer"
       :url-list="recentImageUrls"
       :initial-index="currentImageIndex"
@@ -105,10 +105,10 @@
       :zoom-rate="1.2"
       :max-scale="7"
       :min-scale="0.2"
-    />
+    /> -->
 
     <!-- 功能特性 -->
-    <div class="features">
+    <!-- <div class="features">
       <h2>平台特性</h2>
       <div class="features-grid">
         <div class="feature-item">
@@ -127,7 +127,7 @@
           <p>一键下载原始文件到本地设备</p>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -244,7 +244,7 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-image: url('@/assets/backgroundOne.webpg');
+    background-image: url('@/assets/backgroundOne.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
