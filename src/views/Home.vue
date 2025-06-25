@@ -244,7 +244,7 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-image: url('@/assets/backgroundOne.png');
+    background-image: url('@/assets/backgroundOne.webpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
