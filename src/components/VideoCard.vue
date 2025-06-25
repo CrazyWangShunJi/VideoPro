@@ -47,14 +47,14 @@
           <el-icon><VideoPlay /></el-icon>
           播放
         </el-button>
-        <el-button size="small" @click="$emit('download', video)">
+        <!-- <el-button size="small" @click="$emit('download', video)">
           <el-icon><Download /></el-icon>
           下载
         </el-button>
         <el-button size="small" @click="showVideoInfo" v-if="showInfoButton">
           <el-icon><InfoFilled /></el-icon>
           详情
-        </el-button>
+        </el-button> -->
       </div>
     </div>
     

@@ -80,15 +80,13 @@
       />
     </div>
 
-    <!-- 视频播放对话框 -->
-    <el-dialog 
-      v-model="dialogVisible" 
-      :title="currentVideo?.name"
-      width="80%"
-      top="5vh"
-      @close="closeVideoDialog"
+    <!-- 全屏视频播放器 -->
+    <div 
+      v-if="dialogVisible" 
+      class="fullscreen-video-overlay"
+      @click.self="closeVideoDialog"
     >
-      <div class="video-dialog-container">
+      <div class="fullscreen-video-container">
         <VideoPlayer
           v-if="currentVideo"
           :video-url="currentVideo.url"
@@ -100,15 +98,19 @@
           @ended="closeVideoDialog"
           @qualityChanged="(quality) => console.log('质量已切换至:', quality)"
         />
+        <!-- 关闭按钮 -->
+        <button class="close-button" @click="closeVideoDialog">
+          ×
+        </button>
       </div>
-    </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElDialog, ElBreadcrumb, ElBreadcrumbItem } from 'element-plus'
+import { ElInput, ElButton, ElTag, ElAlert, ElEmpty, ElIcon, ElBreadcrumb, ElBreadcrumbItem } from 'element-plus'
 import { VideoPlay, Download, Search } from '@element-plus/icons-vue'
 import { apiService, type MediaFile, formatFileSize, getFileExtension } from '../api'
 import VideoPlayer from '../components/VideoPlayer.vue'
@@ -186,11 +188,21 @@ const getVideoPoster = (video: MediaFile) => {
 const playVideo = (video: MediaFile) => {
   currentVideo.value = video
   dialogVisible.value = true
+  // 添加 ESC 键监听
+  document.addEventListener('keydown', handleKeyDown)
 }
 
 const closeVideoDialog = () => {
   dialogVisible.value = false
   currentVideo.value = null
+  // 移除 ESC 键监听
+  document.removeEventListener('keydown', handleKeyDown)
+}
+
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && dialogVisible.value) {
+    closeVideoDialog()
+  }
 }
 
 const downloadVideo = (video: MediaFile) => {
@@ -281,12 +293,55 @@ onMounted(() => {
     gap: 2rem;
   }
 
-  .video-dialog-container {
-    text-align: center;
+  .fullscreen-video-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-    video {
-      max-height: 70vh;
-      border-radius: 8px;
+  .fullscreen-video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    :deep(video) {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.3s;
+      z-index: 10000;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.9);
+      }
     }
   }
 }
@@ -329,13 +384,6 @@ onMounted(() => {
         }
       }
     }
-  }
-}
-
-// Element Plus 对话框样式覆盖
-:deep(.el-dialog) {
-  .el-dialog__body {
-    padding: 1rem;
   }
 }
 </style> 
