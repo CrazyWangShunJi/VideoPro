@@ -1,5 +1,5 @@
 <template>
-  <div class="video-player" ref="playerContainer">
+  <div :class="playerClasses" ref="playerContainer">
     <video
       ref="videoElement"
       :src="currentVideoUrl"
@@ -133,6 +133,8 @@ const networkSpeed = ref(0)
 const showNetworkStatus = ref(false)
 const retryCount = ref(0)
 const maxRetries = DEFAULT_PLAYER_CONFIG.maxRetries
+const videoAspectRatio = ref<number>(16/9) // 默认16:9比例
+const isVerticalVideo = ref(false) // 是否为竖屏视频
 
 // 网络状态
 const networkStatus = ref<'fast' | 'medium' | 'slow' | 'offline'>('medium')
@@ -199,6 +201,14 @@ const networkStatusText = computed(() => {
   return statusMap[networkStatus.value]
 })
 
+const playerClasses = computed(() => {
+  return {
+    'video-player': true,
+    'vertical-video': isVerticalVideo.value,
+    'horizontal-video': !isVerticalVideo.value
+  }
+})
+
 // 方法
 const getAutoQuality = () => {
   const validNetworkStatus = networkStatus.value === 'offline' ? 'slow' : networkStatus.value
@@ -256,6 +266,28 @@ const onLoadStart = () => {
 const onLoadedMetadata = () => {
   const video = videoElement.value
   if (video) {
+    // 检测视频宽高比
+    videoAspectRatio.value = video.videoWidth / video.videoHeight
+    isVerticalVideo.value = videoAspectRatio.value < 1 // 宽高比小于1表示竖屏视频
+    
+    console.log(`📹 视频信息: ${video.videoWidth}x${video.videoHeight}, 宽高比: ${videoAspectRatio.value.toFixed(2)}, 竖屏: ${isVerticalVideo.value}`)
+    console.log(`📱 应用样式类: ${isVerticalVideo.value ? 'vertical-video' : 'horizontal-video'}`)
+    
+    // 根据视频比例动态调整容器样式
+    if (playerContainer.value) {
+      if (isVerticalVideo.value) {
+        // 竖屏视频，强制设置容器样式
+        playerContainer.value.style.width = 'auto'
+        playerContainer.value.style.height = '80vh'
+        playerContainer.value.style.maxWidth = '45vh'
+      } else {
+        // 横屏视频，重置样式
+        playerContainer.value.style.width = '100%'
+        playerContainer.value.style.height = 'auto'
+        playerContainer.value.style.maxWidth = 'none'
+      }
+    }
+    
     emit('loadedmetadata', video.duration)
   }
 }
@@ -473,14 +505,19 @@ watch(() => props.videoUrl, () => {
   background: #000;
   border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   video {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     display: block;
     outline: none;
     
-    // 优化视频渲染
+    // 保持视频原始宽高比，不拉伸
     object-fit: contain;
     
     // 硬件加速
@@ -533,31 +570,174 @@ watch(() => props.videoUrl, () => {
     z-index: 20;
   }
 
+  // 竖屏视频特殊样式
+  &.vertical-video {
+    width: auto;
+    height: 80vh; // 设置固定高度
+    max-width: 45vh; // 9:16比例，45vh对应80vh的高度
+    margin: 0 auto; // 居中显示
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  
+  &.horizontal-video {
+    width: 100%;
+    height: auto;
+    
+    video {
+      width: 100%;
+      height: auto;
+      max-height: 70vh; // 限制最大高度
+    }
+  }
+
   // 移动端优化
   @media (max-width: 768px) {
     .quality-selector {
       top: 5px;
       right: 5px;
     }
+    
+    // 移动端竖屏视频适配
+    &.vertical-video {
+      width: 100vw;
+      height: 70vh; // 设置固定高度
+      max-width: 39.375vh; // 9:16比例对应70vh
+      
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+    }
   }
 }
 
 // 全屏模式优化
 .video-player:fullscreen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  max-width: 100vw;
+  max-height: 100vh;
+  
   video {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
     object-fit: contain;
+  }
+  
+  // 全屏模式下的竖屏视频
+  &.vertical-video {
+    width: 56.25vh; // 9:16比例的宽度
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  
+  // 全屏模式下的横屏视频  
+  &.horizontal-video {
+    width: 100vw;
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   }
 }
 
 .video-player:-webkit-full-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  max-width: 100vw;
+  max-height: 100vh;
+  
   video {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
     object-fit: contain;
+  }
+  
+  // 全屏模式下的竖屏视频
+  &.vertical-video {
+    width: 56.25vh; // 9:16比例的宽度
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  
+  // 全屏模式下的横屏视频  
+  &.horizontal-video {
+    width: 100vw;
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   }
 }
 
 .video-player:-moz-full-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  max-width: 100vw;
+  max-height: 100vh;
+  
   video {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
     object-fit: contain;
+  }
+  
+  // 全屏模式下的竖屏视频
+  &.vertical-video {
+    width: 56.25vh; // 9:16比例的宽度
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  
+  // 全屏模式下的横屏视频  
+  &.horizontal-video {
+    width: 100vw;
+    height: 100vh;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   }
 }
 
