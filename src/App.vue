@@ -3,8 +3,10 @@ import { ElContainer, ElHeader, ElMain, ElFooter, ElDropdown, ElDropdownMenu, El
 import { ArrowDown } from '@element-plus/icons-vue'
 import { ref, onMounted } from 'vue'
 import { apiService, type PhotoCategory } from './api'
+import ContactModal from './components/ContactModal.vue'
 
 const categories = ref<PhotoCategory[]>([])
+const showContactModal = ref(false)
 
 const loadCategories = async () => {
   try {
@@ -12,6 +14,14 @@ const loadCategories = async () => {
   } catch (error) {
     console.error('加载分类失败:', error)
   }
+}
+
+const openContactModal = () => {
+  showContactModal.value = true
+}
+
+const closeContactModal = () => {
+  showContactModal.value = false
 }
 
 onMounted(() => {
@@ -57,8 +67,15 @@ onMounted(() => {
     </el-main>
 
     <el-footer>
-      <p>&copy; 2024 PhotoPro. All rights reserved.</p>
+      <p class="contact-link" @click="openContactModal">联系我们</p>
     </el-footer>
+
+    <!-- 联系我们弹窗 -->
+    <ContactModal 
+      v-if="showContactModal"
+      :visible="showContactModal"
+      @close="closeContactModal"
+    />
   </el-container>
 </template>
 
@@ -150,5 +167,18 @@ body {
   text-align: center;
   color: #909399;
   padding: 2rem;
+
+  .contact-link {
+    cursor: pointer;
+    color: #409EFF;
+    transition: color 0.3s, transform 0.2s;
+    display: inline-block;
+    margin: 0;
+    
+    &:hover {
+      color: #337ecc;
+      transform: translateY(-2px);
+    }
+  }
 }
 </style>
