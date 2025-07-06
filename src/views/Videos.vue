@@ -304,6 +304,17 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
+    
+    // 确保视频控制条始终在最上层
+    video {
+      position: relative;
+      z-index: 1;
+    }
+    
+    // 防止任何元素遮挡控制条
+    * {
+      pointer-events: auto;
+    }
   }
 
   .fullscreen-video-container {
@@ -313,12 +324,64 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding-bottom: 40px; // 为控制条预留空间
+    box-sizing: border-box;
 
     :deep(video) {
       max-width: 100%;
-      max-height: 100%;
+      max-height: calc(100vh - 120px); // 为退出按钮和控制条留出空间
       width: auto;
       height: auto;
+      object-fit: contain; // 保持宽高比，完整显示视频
+      
+      // 针对竖屏视频的特殊处理
+      &[data-aspect-ratio="portrait"] {
+        height: calc(100vh - 120px); // 为控制条预留更多空间
+        width: auto;
+        max-width: 100%;
+        
+        // 确保控制条不被遮挡
+        &::-webkit-media-controls-panel {
+          position: relative !important;
+          bottom: 0 !important;
+          background: rgba(0, 0, 0, 0.8) !important;
+        }
+      }
+      
+      // 针对横屏视频的特殊处理
+      &[data-aspect-ratio="landscape"] {
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - 120px);
+      }
+      
+      // 正方形视频
+      &[data-aspect-ratio="square"] {
+        max-width: min(100vw, calc(100vh - 120px));
+        max-height: min(100vw, calc(100vh - 120px));
+        width: auto;
+        height: auto;
+      }
+      
+      // 通用控制条样式优化
+      &::-webkit-media-controls {
+        position: relative !important;
+        bottom: 0 !important;
+        z-index: 10001 !important;
+      }
+      
+      &::-webkit-media-controls-panel {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border-radius: 0 !important;
+      }
+      
+      // Firefox 控制条样式
+      &::-moz-media-controls {
+        position: relative !important;
+        bottom: 0 !important;
+        z-index: 10001 !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+      }
     }
 
     .close-button {
@@ -382,6 +445,34 @@ onMounted(() => {
             }
           }
         }
+      }
+    }
+
+    // 移动端全屏视频优化
+    .fullscreen-video-container {
+      padding-bottom: 60px; // 移动端需要更多空间
+
+      :deep(video) {
+        max-height: calc(100vh - 140px); // 移动端预留更多空间
+
+        &[data-aspect-ratio="portrait"] {
+          height: calc(100vh - 140px);
+          max-width: 90%; // 移动端竖屏视频稍微缩小一点
+        }
+
+        // 移动端控制条优化
+        &::-webkit-media-controls-panel {
+          height: 50px !important; // 确保控制条有足够高度
+          background: rgba(0, 0, 0, 0.9) !important;
+        }
+      }
+
+      .close-button {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+        font-size: 20px;
       }
     }
   }

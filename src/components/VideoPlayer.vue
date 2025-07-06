@@ -4,6 +4,7 @@
       ref="videoElement"
       :src="currentVideoUrl"
       :poster="posterUrl"
+      :data-aspect-ratio="videoOrientation"
       controls
       :preload="preloadStrategy"
       playsinline
@@ -201,6 +202,17 @@ const networkStatusText = computed(() => {
   return statusMap[networkStatus.value]
 })
 
+// 视频方向检测
+const videoOrientation = computed(() => {
+  if (videoAspectRatio.value > 1.2) {
+    return 'landscape' // 横屏
+  } else if (videoAspectRatio.value < 0.8) {
+    return 'portrait'  // 竖屏
+  } else {
+    return 'square'    // 正方形
+  }
+})
+
 const playerClasses = computed(() => {
   return {
     'video-player': true,
@@ -270,23 +282,7 @@ const onLoadedMetadata = () => {
     videoAspectRatio.value = video.videoWidth / video.videoHeight
     isVerticalVideo.value = videoAspectRatio.value < 1 // 宽高比小于1表示竖屏视频
     
-    console.log(`📹 视频信息: ${video.videoWidth}x${video.videoHeight}, 宽高比: ${videoAspectRatio.value.toFixed(2)}, 竖屏: ${isVerticalVideo.value}`)
-    console.log(`📱 应用样式类: ${isVerticalVideo.value ? 'vertical-video' : 'horizontal-video'}`)
-    
-    // 根据视频比例动态调整容器样式
-    if (playerContainer.value) {
-      if (isVerticalVideo.value) {
-        // 竖屏视频，强制设置容器样式
-        playerContainer.value.style.width = 'auto'
-        playerContainer.value.style.height = '80vh'
-        playerContainer.value.style.maxWidth = '45vh'
-      } else {
-        // 横屏视频，重置样式
-        playerContainer.value.style.width = '100%'
-        playerContainer.value.style.height = 'auto'
-        playerContainer.value.style.maxWidth = 'none'
-      }
-    }
+    console.log(`📹 视频信息: ${video.videoWidth}x${video.videoHeight}, 宽高比: ${videoAspectRatio.value.toFixed(2)}, 方向: ${videoOrientation.value}`)
     
     emit('loadedmetadata', video.duration)
   }
