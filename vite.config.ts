@@ -82,11 +82,11 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0', // 允许外部访问
-    port: 3000,
+    port: 5173, // 改为5173端口，避免与后端3000端口冲突
     open: true,
     proxy: {
       '/api': {
-        target: 'http://114.55.73.26:3001',
+        target: 'http://114.55.73.26:3000', // 改为3000端口
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {
@@ -102,7 +102,7 @@ export default defineConfig({
         },
       },
       '/assets': {
-        target: 'http://114.55.73.26:3001',
+        target: 'http://114.55.73.26:3000', // 改为3000端口
         changeOrigin: true,
         secure: false,
       }
