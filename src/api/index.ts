@@ -1,6 +1,6 @@
-// API基础配置 - 开发环境使用代理，生产环境直连服务器
+// API基础配置 - 开发环境使用代理，生产环境通过nginx代理
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV ? '' : 'http://114.55.73.26:3001')
+  (import.meta.env.DEV ? '' : '')
 
 // 媒体文件接口类型定义
 export interface MediaFile {
