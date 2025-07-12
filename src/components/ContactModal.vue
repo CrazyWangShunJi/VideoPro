@@ -39,7 +39,8 @@
           :model="form"
           :rules="rules"
           class="contact-form"
-          label-position="top"
+          label-position="left"
+          label-width="100px"
         >
           <div class="form-group">
             <el-form-item label="邮箱地址" prop="email">
@@ -47,10 +48,10 @@
                 v-model="form.email"
                 type="email"
                 placeholder="请输入您的邮箱地址"
-                :prefix-icon="Message"
                 clearable
                 size="large"
                 class="form-input"
+                style="width: 250px !important;"
               />
             </el-form-item>
             
@@ -59,10 +60,10 @@
                 v-model="form.phone"
                 type="tel"
                 placeholder="请输入您的电话号码"
-                :prefix-icon="Phone"
                 clearable
                 size="large"
                 class="form-input"
+                style="width: 250px !important;"
               />
             </el-form-item>
           </div>
@@ -74,9 +75,10 @@
               :rows="4"
               placeholder="请告诉我们您的需求或问题，我们会为您提供专业的解答..."
               maxlength="500"
-              show-word-limit
+              
               resize="none"
               class="form-textarea"
+              style="width: 250px !important;"
             />
           </el-form-item>
         </el-form>
@@ -439,38 +441,84 @@ watch(() => props.visible, (newValue) => {
 }
 
 .contact-form {
+  width: 100%;
   .form-group {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
-    margin-bottom: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* 强制设置所有输入框为250px宽度 */
+  .el-input, .el-textarea {
+    width: 250px !important;
+  }
+  
+  /* 更具体的选择器覆盖Element Plus默认样式 */
+  :deep(.el-input) {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+  }
+  
+  :deep(.el-textarea) {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+  }
+  
+  /* 最强优先级的样式覆盖 */
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner) {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+  }
+  
+  :deep(.el-input__inner) {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
   }
   
   .el-form-item {
-    margin-bottom: 2rem;
+    width: 100% !important;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 1rem;
     
     :deep(.el-form-item__label) {
       font-weight: 600;
       color: #374151;
       font-size: 0.9rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0;
+      margin-right: 12px;
+      width: 100px;
+      text-align: right;
+      flex-shrink: 0;
     }
     
     :deep(.el-form-item__error) {
       font-size: 0.8rem;
       margin-top: 0.25rem;
     }
+
+    .el-form-item__content {
+      width: 250px !important;
+    }
   }
   
   .form-input {
-    width: 100%;
+    width: 250px !important;
     
     :deep(.el-input__wrapper) {
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       border: 1px solid rgba(229, 231, 235, 0.8);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      width: 100%;
+      width: 250px !important;
       
       &:hover {
         border-color: #409EFF;
@@ -486,7 +534,7 @@ watch(() => props.visible, (newValue) => {
     :deep(.el-input__inner) {
       font-size: 0.95rem;
       font-weight: 500;
-      width: 100%;
+      width: 250px !important;
     }
     
     :deep(.el-input__prefix-inner) {
@@ -495,7 +543,7 @@ watch(() => props.visible, (newValue) => {
   }
   
   .form-textarea {
-    width: 100%;
+    width: 250px !important;
     
     :deep(.el-textarea__inner) {
       border-radius: 12px;
@@ -505,7 +553,7 @@ watch(() => props.visible, (newValue) => {
       font-size: 0.95rem;
       font-weight: 500;
       line-height: 1.6;
-      width: 100%;
+      width: 250px !important;
       
       &:hover {
         border-color: #409EFF;
@@ -676,5 +724,23 @@ watch(() => props.visible, (newValue) => {
   .modal-footer {
     padding: 0.75rem 1rem 1rem;
   }
+}
+
+/* 全局强制覆盖：针对这个组件内的所有输入框 */
+.contact-form :deep(.el-input),
+.contact-form :deep(.el-textarea),
+.contact-form :deep(.el-input__wrapper),
+.contact-form :deep(.el-textarea__inner),
+.contact-form :deep(.el-input__inner) {
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
+}
+
+.contact-form .form-input,
+.contact-form .form-textarea {
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
 }
 </style> 
